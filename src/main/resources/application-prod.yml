@@ -1,0 +1,17 @@
+keycloak:
+  auth-server-url: https://keycloak-edp-cockpit-demo.demo-cluster.edp-epam.com/auth
+  realm: ${REALM}
+  resource: ${CLIENT_ID}
+  disable-trust-manager: true
+  credentials:
+    secret: ${CLIENT_SECRET}
+
+bar-service:
+  ribbon:
+    NIWSServerListClassName: io.fabric8.kubeflix.ribbon.KubernetesServerList
+    PortName: bar-service
+
+foo-service:
+  ribbon:
+    NIWSServerListClassName: io.fabric8.kubeflix.ribbon.KubernetesServerList
+    PortName: foo-service

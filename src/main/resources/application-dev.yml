@@ -1,0 +1,13 @@
+keycloak:
+  enabled: false
+
+security:
+  ignored: "/**"
+  enabled: false
+
+foo-service:
+  ribbon:
+    listOfServers: localhost:8081
+bar-service:
+  ribbon:
+    listOfServers: localhost:8082

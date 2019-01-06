@@ -1,0 +1,139 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: "api-gateway-service"
+  annotations:
+    iconClass: "icon-spring"
+    description: Openshift template for spring-boot application/service deploying
+    template.openshift.io/provider-display-name: EPAM
+    template.openshift.io/support-url: https://www.epam.com
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: "api-gateway-service"
+    labels:
+      app: "api-gateway-service"
+  spec:
+    ports:
+    - name: "api-gateway-service"
+      port: 8765
+      protocol: TCP
+      targetPort: 8765
+    selector:
+      app: "api-gateway-service"
+    type: ClusterIP
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: "api-gateway-service"
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: "api-gateway-service"
+    annotations:
+      description: "Route for api-gateway-service application"
+    labels:
+      app: "api-gateway-service"
+  spec:
+    tls:
+      insecureEdgeTerminationPolicy: Redirect
+      termination: edge
+    port:
+      targetPort: 8765
+    to:
+      kind: Service
+      name: "api-gateway-service"
+    wildcardPolicy: None
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: "api-gateway-service"
+    labels:
+      app: "api-gateway-service"
+  spec:
+    replicas: 1
+    selector:
+      app: "api-gateway-service"
+    strategy:
+      activeDeadlineSeconds: 21600
+      type: Rolling
+      rollingParams:
+        failurePolicy: Abort
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+    template:
+      metadata:
+        labels:
+          app: "api-gateway-service"
+      spec:
+        serviceAccountName: "api-gateway-service"
+        containers:
+        - name: "api-gateway-service"
+          image: "${IMAGE_NAME}:${APP_VERSION}"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8765
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 5
+            initialDelaySeconds: 180
+            periodSeconds: 20
+            successThreshold: 1
+            tcpSocket:
+              port: 8765
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 5
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            successThreshold: 1
+            tcpSocket:
+              port: 8765
+            timeoutSeconds: 5
+          resources:
+            requests:
+              memory: 1Gi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          env:
+          - name: JAVA_OPTIONS
+            value: >
+              -Dspring.profiles.active=prod
+          - name: REALM
+            valueFrom:
+              secretKeyRef:
+                name: keycloak-secret
+                key: foobar.realm
+          - name: CLIENT_ID
+            valueFrom:
+              secretKeyRef:
+                name: keycloak-secret
+                key: foobar.client.id
+          - name: CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: keycloak-secret
+                key: foobar.client.secret
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    triggers:
+      - type: ConfigChange
+parameters:
+- displayName: Application image name
+  name: IMAGE_NAME
+  required: true
+  value: "api-gateway"
+- displayName: Application version
+  name: APP_VERSION
+  required: true
+  value: "latest"
+- displayName: Current namespace
+  name: NAMESPACE
+  required: true
